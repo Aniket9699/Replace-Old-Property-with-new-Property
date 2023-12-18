@@ -43,3 +43,32 @@ new File(filePath).withReader { reader ->
         }
     }
 new File(filePath).text = modifiedLines.join('\n')
+
+def changeFileEncoding(String filePath, String targetEncoding) {
+    // Check if the file exists
+    if (new File(filePath).exists()) {
+        // Read the content of the file with the current encoding
+        def content = new File(filePath).text
+
+        // Write the content back to the file with the new encoding
+        new File(filePath).withWriter(targetEncoding) { writer ->
+            writer.write(content)
+        }
+
+        println "File encoding changed to $targetEncoding for file: $filePath"
+    } else {
+        println "File not found: $filePath"
+    }
+}
+
+// Check if the OS contains "Windows" or "Linux"
+if (osName.toLowerCase().contains("windows")) {
+    println "This is a Windows operating system."
+    filePath="..\\..\\..\\conf\\agent\\installed.properties"
+    changeFileEncoding(filePath,"UTF-16")
+} else if (osName.toLowerCase().contains("linux")) {
+    println "This is a Linux operating system."
+    filePath="../../../conf/agent/installed.properties"
+} else {
+    println "This script may not support the current operating system: $osName"
+}
