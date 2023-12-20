@@ -1,5 +1,7 @@
 timestamp=$(date +"%Y%m%d%H%M%S")
 File="installed.properties"
+original_path="/home/user/agent/opt/groovy"
+new_path=$(echo "$original_path" | sed 's|/opt.*$||')
 TempFile=$(mktemp)
 
 while IFS= read -r line; do
