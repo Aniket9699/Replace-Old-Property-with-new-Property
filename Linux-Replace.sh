@@ -1,3 +1,4 @@
+timestamp=$(date +"%Y%m%d%H%M%S")
 File="installed.properties"
 TempFile=$(mktemp)
 
