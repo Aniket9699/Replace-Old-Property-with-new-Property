@@ -31,8 +31,7 @@ if (osName.toLowerCase().contains("windows")) {
     // update installed.properties and bin/configure-agent and bin/agent
     readFileContent(filepath,"ibm-java-win-x86_64-71","IBM\\ UrbanCode\\ Deploy/java.home=/opt/ibm-ucd/agent/opt/Agent_Java/jre")
     readFileContent(configurefilepath,"ibm-java-win-x86_64-71","set JAVA_HOME=/opt/ibm-ucd/agent/opt/Agent_Java/jre")
-    readFileContent(fileagentpath,"ibm-java-win-x86_64-71","JAVA_HOME=\"/opt/ibm-ucd/agent/opt/Agent_Java/jre\"")
-
+    readFileContent(fileagentpath, "ibm-java-win-x86_64-71", 'JAVA_HOME="/opt/ibm-ucd/agent/opt/Agent_Java/jre"')
 }
 
 def readFileContent(String filePath,String oldJavaHome,String newJavaPath) {
