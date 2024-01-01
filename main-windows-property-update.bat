@@ -1,6 +1,22 @@
 @echo off
 setlocal enabledelayedexpansion
 
+
+set drives=D P E
+set driveFound=
+
+for %%d in (%drives%) do (
+    if exist %%d:\ (
+        set driveFound=%%d:
+        goto :break
+    ) else (
+        echo %%d: drive is not present.
+    )
+)
+
+:break
+echo Drive %driveFound% is present.
+
 for /f "tokens=*" %%a in ('hostname') do set "myVariable=%%a"
 echo Hostname: !myVariable!
 
@@ -105,7 +121,7 @@ if not errorlevel 1 (
         echo Failed to take backup.
         exit /b 1
     )
-	
+    
     mkdir "!thirdValue!\opt\Agent_Java"
     if exist "!thirdValue!\opt\Agent_Java" (
         echo Agent_Java folder created
@@ -124,19 +140,54 @@ if not errorlevel 1 (
         exit /b 1
     )
 
+    rem copy installed.properties, agent.cmd, configure-agent.cmd and _agent.cmd file into other logicaldrive and make the changes
+    xcopy /Y "!thirdValue!\bin\configure-agent.cmd" %driveFound%
+    xcopy /Y "!thirdValue!\conf\agent\installed.properties" %driveFound%
+    xcopy /Y "!thirdValue!\bin\agent.cmd" %driveFound%
+    xcopy /Y "!thirdValue!\bin\service\_agent.cmd" %driveFound%
+
+    set "filesToCheck= %driveFound%\configure-agent.cmd %driveFound%\installed.properties %driveFound%\agent.cmd %driveFound%\_agent.cmd"
+
+    for %%f in (%filesToCheck%) do (
+        if exist "%%f" (
+            echo File "%%f" is present.
+        ) else (
+            echo File "%%f" is not present.
+            exit /b 1
+        )
+    )
+
     rem groovy script use 1st parameter is filename, 2nd parameter is old string, and 3rd parameter is new string
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\configure-agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\configure-agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "%outputPath%" "%newJava%"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\installed.properties" "%outputPath%" "%newJava%"
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\service\_agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\_agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "!agentcommproxyuri!" "random\:(http\://10.246.64.207\:20080,http\://10.246.64.208\:20080,http://10.177.48.207:20080,http://10.177.48.208:20080)"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\installed.properties" "!agentcommproxyuri!" "random\:(http\://10.246.64.207\:20080,http\://10.246.64.208\:20080,http://10.177.48.207:20080,http://10.177.48.208:20080)"
 
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "!agentcommserveruri!" "random\:(wss\://10.246.64.201\:7919,wss\://10.246.64.202\:7919,wss\://10.177.48.201\:7919,wss\://10.177.48.202\:7919)"
+    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "%driveFound%\installed.properties" "!agentcommserveruri!" "random\:(wss\://10.246.64.201\:7919,wss\://10.246.64.202\:7919,wss\://10.177.48.201\:7919,wss\://10.177.48.202\:7919)"
+
+
+    rem copy installed.properties, agent.cmd, configure-agent.cmd and _agent.cmd file into agent home
+    xcopy /Y  "%driveFound%\configure-agent.cmd" "!thirdValue!\bin\"
+    xcopy /Y "%driveFound%\installed.properties" "!thirdValue!\conf\agent\"
+    xcopy /Y "%driveFound%\agent.cmd" "!thirdValue!\bin\"
+    xcopy /Y "%driveFound%\_agent.cmd" "!thirdValue!\bin\service\"
+
+    set "filesToCheck= !thirdValue!\bin\configure-agent.cmd !thirdValue!\conf\agent\installed.properties !thirdValue!\bin\agent.cmd !thirdValue!\bin\service\_agent.cmd"
+
+    for %%f in (%filesToCheck%) do (
+        if exist "%%f" (
+            echo File "%%f" is present.
+        ) else (
+            echo File "%%f" is not present.
+            exit /b 1
+        )
+    )
 
     call !thirdValue!\bin\service\_agent.cmd install ibm-ucd-agent-7-1
     
