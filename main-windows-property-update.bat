@@ -11,8 +11,10 @@ for /f "tokens=*" %%a in ('%SystemRoot%\System32\PING.exe !myVariable! -4 ^| %Sy
 )
 
 set "found=false"
+set "IpAddress=10.250.130.24"
 
-for /f "tokens=*" %%a in ('type "Windows-Agent-Details.txt" ^| %SystemRoot%\System32\findstr.exe /i /c:"%IpAddress%"') do (
+for /f "tokens=*" %%a in ('type Windows-Agent-Details.txt ^| %SystemRoot%\System32\findstr.exe /R /C:"\<!IpAddress!\>"
+') do (
     set "found=true"
 )
 
@@ -23,7 +25,7 @@ if !found! equ true (
     exit /b 0
 )
 
-for /f "tokens=1,2,3 delims==" %%a in ('%SystemRoot%\System32\findstr.exe /b "!IpAddress!" Windows-Agent-Details.txt') do (
+for /f "tokens=1,2,3 delims==" %%a in ('%SystemRoot%\System32\findstr.exe /R /C:"\<!IpAddress!\>" Windows-Agent-Details.txt') do (
     set "firstValue=%%a"
     set "secondValue=%%b"
     set "thirdValue=%%c"
@@ -66,95 +68,5 @@ echo New Java Path for files are :- "%newJava%" "!thirdValue!\opt\Agent_Java\jre
 echo Agent comm proxy uri:- !agentcommproxyuri!
 echo Agent comm server uri:- !agentcommserveruri!
 echo ====================================================================================
-
-:: stop agent
-call !thirdValue!\bin\stop_agent.cmd
-if %ERRORLEVEL% equ 0 (
-    echo Agent Stopped successfully.
-) else (
-    echo Failed to stop agent exit code %ERRORLEVEL%
-)
-:: Get the current date and time
-for /f "delims=" %%a in ('wmic os get localdatetime ^| find "."') do set datetime=%%a
-
-:: Extract the date and time components
-set year=%datetime:~0,4%
-set month=%datetime:~4,2%
-set day=%datetime:~6,2%
-set hour=%datetime:~8,2%
-set minute=%datetime:~10,2%
-set second=%datetime:~12,2%
-
-:: Create a timestamp
-set timestamp=%year%-%month%-%day%_%hour%-%minute%-%second%
-
-echo Timestamp: %timestamp%
-
-set source=!thirdValue!
-set destination=%source%_BKP_%timestamp%
-
-REM Check if the string contains "ibm-java-win"
-echo !inputPath! | %SystemRoot%\System32\findstr.exe /c:"ibm-java-win-x86_64-71" >nul
-if not errorlevel 1 (
-    echo Agent is using "ibm-java-win-x86_64-71"
-    echo Copying from "%source%" to "%destination%"
-    xcopy "%source%" "%destination%" /E /I
-    if exist "%destination%" (
-        echo Backup taken successfully.
-    ) else (
-        echo Failed to take backup.
-        exit /b 1
-    )
-	
-    mkdir "!thirdValue!\opt\Agent_Java"
-    if exist "!thirdValue!\opt\Agent_Java" (
-        echo Agent_Java folder created
-    ) else (
-        echo Failed to create Agent_Java folder.
-        exit /b 1
-    )
-    rem unzip Agent_Java.zip into destination
-    echo "Unzipping java into Agent_Java folder"
-    call "!secondValue!\bin\groovy.bat" unzip.groovy Agent_Java.zip "!thirdValue!\opt\Agent_Java"
-
-    if exist "!thirdValue!\opt\Agent_Java\jre" (
-        echo New Java is present.
-    ) else (
-        echo New Java is absent.
-        exit /b 1
-    )
-
-    rem groovy script use 1st parameter is filename, 2nd parameter is old string, and 3rd parameter is new string
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\configure-agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "%outputPath%" "%newJava%"
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\bin\service\_agent.cmd" "!configure_agent_java_home!" "!thirdValue!\opt\Agent_Java\jre"
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "!agentcommproxyuri!" "random\:(http\://10.246.64.207\:20080,http\://10.246.64.208\:20080,http://10.177.48.207:20080,http://10.177.48.208:20080)"
-
-    call "!secondValue!\bin\groovy.bat" updateAgentJavaProperty.groovy "!thirdValue!\conf\agent\installed.properties" "!agentcommserveruri!" "random\:(wss\://10.246.64.201\:7919,wss\://10.246.64.202\:7919,wss\://10.177.48.201\:7919,wss\://10.177.48.202\:7919)"
-
-    call !thirdValue!\bin\service\_agent.cmd install ibm-ucd-agent-7-1
-    
-    if %ERRORLEVEL% equ 0 (
-        echo Service Created successfully.
-    ) else (
-        echo Failed to create service exit code:- %ERRORLEVEL%
-        exit /b 1
-    )
-    %SystemRoot%\System32\sc.exe query ibm-ucd-agent-7-1
-
-    %SystemRoot%\System32\sc.exe start ibm-ucd-agent-7-1
-
-    %SystemRoot%\System32\sc.exe query ibm-ucd-agent-7-1
-
-) else (
-    echo Agent is using java other than ibm-java-win-x86_64-71"
-    echo Agent Java !inputPath!
-)
 
 endlocal
